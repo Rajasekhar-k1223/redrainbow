@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -15,6 +15,12 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 @router.post("/register", response_model=UserOut)
 def register(user: UserCreate, db: Session = Depends(get_db)):
+    # SECURITY: Validate invitation code against system configuration
+    from app.core.config import settings
+    required_code = getattr(settings, "registration_invite_code", "RR-MASTER-2025")
+    if user.invite_code != required_code:
+        raise HTTPException(status_code=403, detail="Invalid or missing invitation code")
+
     if get_user_by_username(db, user.username):
         raise HTTPException(status_code=400, detail="Username already exists")
     password_hash = pwd_context.hash(user.password)

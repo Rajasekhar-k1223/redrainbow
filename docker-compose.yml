@@ -1,0 +1,202 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: redrainbow-backend
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      - DOCKER_HOST=tcp://docker-proxy:2375
+    volumes:
+      - ./backend:/app
+      - shared_uploads:/app/uploads
+    command: >
+      sh -c "alembic upgrade head && 
+             python -m uvicorn app.main:app --host 0.0.0.0 --port 8080"
+    restart: unless-stopped
+    depends_on:
+      - docker-proxy
+      - red-db
+      - red-mongo
+      - redis
+    networks:
+      - redrainbow_default
+
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy
+    container_name: redrainbow-docker-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - CONTAINERS=1
+      - EXEC=1
+      - IMAGES=1
+      - NETWORKS=1
+      - POST=1
+    restart: unless-stopped
+    networks:
+      - redrainbow_default
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: redrainbow-frontend
+    ports:
+      - "5174:80"
+    restart: unless-stopped
+    networks:
+      - redrainbow_default
+
+  kali-agent:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.kali
+    container_name: redrainbow-kali
+    command: tail -f /dev/null
+    restart: unless-stopped
+    volumes:
+      - shared_uploads:/app/uploads
+    networks:
+      - redrainbow_default
+
+  remnux-agent:
+    image: remnux/remnux-distro:focal
+    container_name: redrainbow-remnux
+    command: tail -f /dev/null
+    restart: unless-stopped
+    volumes:
+      - shared_uploads:/app/uploads
+    networks:
+      - redrainbow_default
+
+  security-onion:
+    image: alpine:latest
+    container_name: redrainbow-security-onion
+    command: tail -f /dev/null
+    restart: unless-stopped
+    volumes:
+      - shared_uploads:/app/uploads
+    networks:
+      - redrainbow_default
+
+  qubes-agent:
+    image: alpine:latest
+    container_name: redrainbow-qubes
+    command: tail -f /dev/null
+    restart: unless-stopped
+    volumes:
+      - shared_uploads:/app/uploads
+    networks:
+      - redrainbow_default
+
+  sechub-agent:
+    image: ghcr.io/zaproxy/zaproxy:stable
+    container_name: redrainbow-sechub
+    command: tail -f /dev/null
+    restart: unless-stopped
+    volumes:
+      - shared_uploads:/app/uploads
+    networks:
+      - redrainbow_default
+
+  sentinelx-ai-agent:
+    image: python:3.11-slim
+    container_name: redrainbow-sentinelx
+    command: tail -f /dev/null
+    restart: unless-stopped
+    volumes:
+      - shared_uploads:/app/uploads
+    networks:
+      - redrainbow_default
+
+  caine-agent:
+    image: debian:bullseye-slim
+    container_name: redrainbow-caine
+    command: sh -c "apt-get update && apt-get install -y binwalk && tail -f /dev/null"
+    restart: unless-stopped
+    volumes:
+      - shared_uploads:/app/uploads
+    networks:
+      - redrainbow_default
+
+  # --- ALPHABETICAL GAUNTLET NODES (HARDENED) ---
+  redrainbow-exiftool:
+    container_name: redrainbow-exiftool
+    image: kalilinux/kali-rolling
+    volumes:
+      - shared_uploads:/app/uploads
+    command: sh -c "apt-get update && apt-get install -y exiftool curl && curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin && tail -f /dev/null"
+    networks:
+      - redrainbow_default
+
+  redrainbow-dnsrecon:
+    container_name: redrainbow-dnsrecon
+    image: kalilinux/kali-rolling
+    volumes:
+      - shared_uploads:/app/uploads
+    command: sh -c "apt-get update && apt-get install -y dnsrecon kiterunner || apt-get install -y dnsrecon && tail -f /dev/null"
+    networks:
+      - redrainbow_default
+
+  redrainbow-radare2:
+    container_name: redrainbow-radare2
+    image: kalilinux/kali-rolling
+    volumes:
+      - shared_uploads:/app/uploads
+    command: sh -c "apt-get update && apt-get install -y radare2 && tail -f /dev/null"
+    networks:
+      - redrainbow_default
+
+  red-db:
+    image: mysql:8.0
+    container_name: redrainbow-mysql
+    restart: unless-stopped
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-redrainbow_appdb}
+      - MYSQL_USER=${MYSQL_USER:-appuser}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "43306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - redrainbow_default
+
+  red-mongo:
+    image: mongo:6.0
+    container_name: redrainbow-mongodb
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_DATABASE:-appdb}
+    ports:
+      - "37017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - redrainbow_default
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: redrainbow-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "16379:6379"
+    networks:
+      - redrainbow_default
+
+networks:
+  redrainbow_default:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  mongodb_data:
+  shared_uploads:

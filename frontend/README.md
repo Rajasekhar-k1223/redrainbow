@@ -1,3 +1,3 @@
-﻿# React app placeholder
+# Welcome to your Lovable project
 
-Use a standard React scaffold (Vite recommended) and place source files in `frontend/src/`.
+TODO: Document your project here
