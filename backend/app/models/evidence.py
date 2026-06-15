@@ -1,19 +1,17 @@
-from datetime import datetime
-from sqlalchemy import Column, DateTime, Integer, String, Text, ForeignKey, Boolean
-from app.models.user import Base
+from sqlalchemy import Column, String, Text, Boolean, Integer
+from app.db.base import Base, TimestampMixin, TenantMixin, generate_uuid
 
-class Evidence(Base):
-    __tablename__ = "evidence"
+class Evidence(Base, TimestampMixin, TenantMixin):
+    __tablename__ = "evidence_vault"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
     title = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
-    file_path = Column(String(512), nullable=True)
-    sha256 = Column(String(64), nullable=True) # Forensic integrity hash
+    file_path = Column(String(512), nullable=False)
+    file_name = Column(String(255), nullable=False)
+    file_size = Column(Integer, nullable=False)
+    sha256 = Column(String(64), nullable=False, index=True) # Cryptographic integrity hash
     evidence_type = Column(String(50), nullable=False)
-    severity = Column(String(20), default="Info") # Critical, High, Med, Low, Info
-    source_vector = Column(String(100), nullable=True) # e.g. 'Nmap-Phase-7'
-    forensic_data = Column(Text, nullable=True) # JSON store for forensic details
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    is_deleted = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    source_vector = Column(String(100), nullable=True)
+    uploaded_by = Column(String(100), nullable=False)
+    is_tampered = Column(Boolean, default=False)

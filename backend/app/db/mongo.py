@@ -1,17 +1,19 @@
-﻿from motor.motor_asyncio import AsyncIOMotorClient
+import os
+from motor.motor_asyncio import AsyncIOMotorClient
 
-from app.core.config import settings
+MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
 
-_client: AsyncIOMotorClient | None = None
+class MongoManager:
+    client: AsyncIOMotorClient = None
 
+db_manager = MongoManager()
 
-def get_mongo_client() -> AsyncIOMotorClient:
-    global _client
-    if _client is None:
-        _client = AsyncIOMotorClient(settings.mongodb_url)
-    return _client
+async def connect_to_mongo():
+    db_manager.client = AsyncIOMotorClient(MONGO_URL)
 
+async def close_mongo_connection():
+    db_manager.client.close()
 
 def get_mongo_db():
-    client = get_mongo_client()
-    return client.get_default_database()
+    # Returns the RedRainbow database instance
+    return db_manager.client.redrainbow

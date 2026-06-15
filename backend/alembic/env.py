@@ -10,9 +10,17 @@ from alembic import context
 import sys
 sys.path.append(os.getcwd())
 
-from app.models.user import Base
-from app.models.evidence import Evidence
+from app.models.tenant import Tenant
+from app.models.user import User
+from app.models.asset import Asset
 from app.models.scan import Scan
+from app.models.finding import Finding
+from app.models.incident import Incident
+from app.models.audit import AuditLog
+from app.models.evidence import Evidence
+from app.models.monitorix import MonitorixAgent
+from app.models.siem import SiemLog
+from app.db.base import Base
 
 config = context.config
 

@@ -1,4 +1,4 @@
-﻿# Logs
+# Logs
 .env
 __pycache__
 *.pyc
@@ -15,3 +15,8 @@ node_modules
 Thumbs.db
 # Migrations
 alembic.ini
+
+# Virtual Environment
+venv/
+backend/venv/
+.venv/

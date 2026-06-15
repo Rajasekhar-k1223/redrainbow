@@ -1,15 +1,23 @@
-﻿from datetime import datetime
+import enum
+from sqlalchemy import Column, String, Boolean, Enum
+from app.db.base import Base, TimestampMixin, TenantMixin, generate_uuid
 
-from sqlalchemy import Column, DateTime, Integer, String
-from sqlalchemy.orm import declarative_base
+class UserRole(str, enum.Enum):
+    SUPER_ADMIN = "Super Admin"
+    SECURITY_ADMIN = "Security Admin"
+    SOC_ANALYST = "SOC Analyst"
+    THREAT_HUNTER = "Threat Hunter"
+    INCIDENT_RESPONDER = "Incident Responder"
+    AUDITOR = "Auditor"
+    VIEWER = "Viewer"
 
-Base = declarative_base()
-
-
-class User(Base):
+class User(Base, TimestampMixin, TenantMixin):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
     username = Column(String(64), unique=True, index=True, nullable=False)
+    email = Column(String(255), unique=True, index=True, nullable=False)
     password_hash = Column(String(256), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    role = Column(Enum(UserRole), default=UserRole.VIEWER, nullable=False)
+    mfa_secret = Column(String(32), nullable=True) # Base32 TOTP secret
+    mfa_enabled = Column(Boolean, default=False, nullable=False)

@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redrainbow-backend
+  labels:
+    app: redrainbow-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: redrainbow-backend
+  template:
+    metadata:
+      labels:
+        app: redrainbow-backend
+    spec:
+      containers:
+      - name: backend
+        image: myregistry.azurecr.io/redrainbow-backend:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: redrainbow-secrets
+              key: database-url
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: redrainbow-secrets
+              key: jwt-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redrainbow-backend-svc
+spec:
+  selector:
+    app: redrainbow-backend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redrainbow-frontend
+  labels:
+    app: redrainbow-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: redrainbow-frontend
+  template:
+    metadata:
+      labels:
+        app: redrainbow-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: myregistry.azurecr.io/redrainbow-frontend:latest
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redrainbow-frontend-svc
+spec:
+  selector:
+    app: redrainbow-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: LoadBalancer
